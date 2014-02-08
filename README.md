@@ -1,14 +1,14 @@
 # gzip
 Gzip middleware for Martini.
 
-[API Reference](http://godoc.org/github.com/codegangsta/martini-contrib/gzip)
+[API Reference](http://godoc.org/github.com/martini-contrib/gzip)
 
 ## Usage
 
 ~~~ go
 import (
   "github.com/codegangsta/martini"
-  "github.com/codegangsta/martini-contrib/gzip"
+  "github.com/martini-contrib/gzip"
 )
 
 func main() {
