@@ -1,7 +1,7 @@
 # gzip [![wercker status](https://app.wercker.com/status/186d65e4d8160cf274ffc5835e6d9795 "wercker status")](https://app.wercker.com/project/bykey/186d65e4d8160cf274ffc5835e6d9795)
 Gzip middleware for Martini.
 
-[API Reference](http://godoc.org/github.com/codegangsta/martini-contrib/gzip)
+[API Reference](http://godoc.org/github.com/martini-contrib/gzip)
 
 ## Usage
 
