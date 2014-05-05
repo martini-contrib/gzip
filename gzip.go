@@ -1,10 +1,14 @@
 package gzip
 
 import (
+	"bufio"
 	"compress/gzip"
-	"github.com/go-martini/martini"
+	"fmt"
+	"net"
 	"net/http"
 	"strings"
+
+	"github.com/go-martini/martini"
 )
 
 const (
@@ -52,4 +56,12 @@ func (grw gzipResponseWriter) Write(p []byte) (int, error) {
 	}
 
 	return grw.w.Write(p)
+}
+
+func (grw gzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := grw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("the ResponseWriter doesn't support the Hijacker interface")
+	}
+	return hijacker.Hijack()
 }
