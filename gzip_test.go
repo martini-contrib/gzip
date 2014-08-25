@@ -2,6 +2,8 @@ package gzip
 
 import (
 	"github.com/go-martini/martini"
+	"bufio"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -56,5 +58,49 @@ func Test_GzipAll(t *testing.T) {
 
 	if before == false {
 		t.Error("Before hook was not called")
+	}
+}
+
+type hijackableResponse struct {
+	Hijacked bool
+	header   http.Header
+}
+
+func newHijackableResponse() *hijackableResponse {
+	return &hijackableResponse{header: make(http.Header)}
+}
+
+func (h *hijackableResponse) Header() http.Header           { return h.header }
+func (h *hijackableResponse) Write(buf []byte) (int, error) { return 0, nil }
+func (h *hijackableResponse) WriteHeader(code int)          {}
+func (h *hijackableResponse) Flush()                        {}
+func (h *hijackableResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h.Hijacked = true
+	return nil, nil, nil
+}
+
+func Test_ResponseWriter_Hijack(t *testing.T) {
+	hijackable := newHijackableResponse()
+
+	m := martini.New()
+	m.Use(All())
+	m.Use(func(rw http.ResponseWriter) {
+		if hj, ok := rw.(http.Hijacker); !ok {
+			t.Error("Unable to hijack")
+		} else {
+			hj.Hijack()
+		}
+	})
+
+	r, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	r.Header.Set(HeaderAcceptEncoding, "gzip")
+	m.ServeHTTP(hijackable, r)
+
+	if !hijackable.Hijacked {
+		t.Error("Hijack was not called")
 	}
 }
