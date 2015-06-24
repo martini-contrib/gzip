@@ -17,9 +17,12 @@ const (
 	HeaderContentLength   = "Content-Length"
 	HeaderContentType     = "Content-Type"
 	HeaderVary            = "Vary"
+	BestSpeed             = gzip.BestSpeed
+	BestCompression       = gzip.BestCompression
+	DefaultCompression    = gzip.DefaultCompression
 )
 
-var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context) {
+var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context, options Options) {
 	if !strings.Contains(r.Header.Get(HeaderAcceptEncoding), "gzip") {
 		return
 	}
@@ -28,7 +31,11 @@ var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context) 
 	headers.Set(HeaderContentEncoding, "gzip")
 	headers.Set(HeaderVary, HeaderAcceptEncoding)
 
-	gz := gzip.NewWriter(w)
+	gz, err := gzip.NewWriterLevel(w, options.CompressionLevel)
+	if err != nil {
+		// If something is wrong with compression level we use default value.
+		gz = gzip.NewWriter(w)
+	}
 	defer gz.Close()
 
 	gzw := gzipResponseWriter{gz, w.(martini.ResponseWriter)}
@@ -40,9 +47,40 @@ var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context) 
 	gzw.Header().Del("Content-Length")
 }
 
+// Options is a struct for specifying configuration options.
+type Options struct {
+	// Compression level. Can be DefaultCompression or any integer value between BestSpeed and BestCompression inclusive.
+	CompressionLevel int
+}
+
 // All returns a Handler that adds gzip compression to all requests
-func All() martini.Handler {
-	return serveGzip
+func All(options ...Options) martini.Handler {
+	opt := prepareOptions(options)
+	return func(w http.ResponseWriter, r *http.Request, c martini.Context) {
+		serveGzip(w, r, c, opt)
+	}
+}
+
+func prepareOptions(options []Options) Options {
+	var opt Options
+        if len(options) > 0 {
+                opt = options[0]
+        }
+        if !isCompressionLevelValid(opt.CompressionLevel) {
+                opt.CompressionLevel = DefaultCompression
+        }
+	return opt
+}
+
+func isCompressionLevelValid(level int) bool {
+	switch {
+	case level == DefaultCompression:
+		return true
+	case BestSpeed <= level && level <= BestCompression:
+		return true
+	default:
+		return false
+	}
 }
 
 type gzipResponseWriter struct {
