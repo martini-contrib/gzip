@@ -56,9 +56,8 @@ func (grw gzipResponseWriter) Write(p []byte) (int, error) {
 		return 0, nil
 	} else if !grw.wroteHeader {
 		//Write the content headers before the first write
-		headers := grw.Header()
-		headers.Set(HeaderContentEncoding, "gzip")
-		headers.Set(HeaderVary, HeaderAcceptEncoding)
+		grw.Header().Set(HeaderContentEncoding, "gzip")
+		grw.Header().Set(HeaderVary, HeaderAcceptEncoding)
 
 		//Instantiate gzip writer on first write
 		//This ensures that the response body is empty if nothing is ever
