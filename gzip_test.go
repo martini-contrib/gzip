@@ -2,10 +2,7 @@ package gzip
 
 import (
 	"bufio"
-	"compress/gzip"
 	"github.com/go-martini/martini"
-	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -73,18 +70,6 @@ func Test_GzipAll(t *testing.T) {
 	ce = recorder.Header().Get(HeaderContentEncoding)
 	if !strings.EqualFold(ce, "gzip") {
 		t.Error(HeaderContentEncoding + " is not 'gzip'")
-	}
-
-	bodyReader, err := gzip.NewReader(recorder.Body)
-	if err != nil {
-		t.Errorf("Unable to read body as gzip: %+v", err)
-	}
-	d, err := ioutil.ReadAll(bodyReader)
-	if err != nil && err != io.EOF {
-		t.Errorf("Unable to read gzip body: %+v", err)
-	}
-	if string(d) != "data!" {
-		t.Errorf("Body not decoded correctly: %s, %s", recorder.Body.Bytes(), d)
 	}
 
 	if before == false {

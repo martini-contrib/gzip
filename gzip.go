@@ -28,7 +28,7 @@ var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context) 
 		ResponseWriter: w.(martini.ResponseWriter),
 		wroteHeader:    false,
 	}
-	c.MapTo(&gzw, (*http.ResponseWriter)(nil))
+	c.MapTo(gzw, (*http.ResponseWriter)(nil))
 
 	c.Next()
 
@@ -50,7 +50,7 @@ type gzipResponseWriter struct {
 	wroteHeader bool
 }
 
-func (grw *gzipResponseWriter) Write(p []byte) (int, error) {
+func (grw gzipResponseWriter) Write(p []byte) (int, error) {
 	//Don't do anything if this write attempt has 0 bytes
 	if p == nil || len(p) == 0 {
 		return 0, nil
