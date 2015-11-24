@@ -24,19 +24,20 @@ var serveGzip = func(w http.ResponseWriter, r *http.Request, c martini.Context) 
 		return
 	}
 
-	gzw := gzipResponseWriter{
-		ResponseWriter: w.(martini.ResponseWriter),
-		wroteHeader:    false,
-	}
+	headers := w.Header()
+	headers.Set(HeaderContentEncoding, "gzip")
+	headers.Set(HeaderVary, HeaderAcceptEncoding)
+
+	gz := gzip.NewWriter(w)
+	defer gz.Close()
+
+	gzw := gzipResponseWriter{gz, w.(martini.ResponseWriter)}
 	c.MapTo(gzw, (*http.ResponseWriter)(nil))
 
 	c.Next()
 
 	// delete content length after we know we have been written to
-	if gzw.wroteHeader {
-		gzw.Header().Del("Content-Length")
-		gzw.w.Close()
-	}
+	gzw.Header().Del("Content-Length")
 }
 
 // All returns a Handler that adds gzip compression to all requests
@@ -47,26 +48,9 @@ func All() martini.Handler {
 type gzipResponseWriter struct {
 	w *gzip.Writer
 	martini.ResponseWriter
-	wroteHeader bool
 }
 
 func (grw gzipResponseWriter) Write(p []byte) (int, error) {
-	//Don't do anything if this write attempt has 0 bytes
-	if p == nil || len(p) == 0 {
-		return 0, nil
-	} else if !grw.wroteHeader {
-		//Write the content headers before the first write
-		headers := grw.Header()
-		headers.Set(HeaderContentEncoding, "gzip")
-		headers.Set(HeaderVary, HeaderAcceptEncoding)
-
-		//Instantiate gzip writer on first write
-		//This ensures that the response body is empty if nothing is ever
-		//written to it
-		grw.w = gzip.NewWriter(grw.ResponseWriter)
-
-		grw.wroteHeader = true
-	}
 	if len(grw.Header().Get(HeaderContentType)) == 0 {
 		grw.Header().Set(HeaderContentType, http.DetectContentType(p))
 	}
