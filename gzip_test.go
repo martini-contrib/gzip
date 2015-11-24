@@ -1,8 +1,8 @@
 package gzip
 
 import (
-	"bufio"
 	"github.com/go-martini/martini"
+	"bufio"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -15,27 +15,13 @@ func Test_GzipAll(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	before := false
 
-	bM := martini.New()
-	bM.Use(All())
-	bM.Use(func(r http.ResponseWriter) {
+	m := martini.New()
+	m.Use(All())
+	m.Use(func(r http.ResponseWriter) {
 		r.(martini.ResponseWriter).Before(func(rw martini.ResponseWriter) {
 			before = true
 		})
 	})
-	router := martini.NewRouter()
-	bM.MapTo(router, (*martini.Routes)(nil))
-	bM.Action(router.Handle)
-	m := &martini.ClassicMartini{
-		Martini: bM,
-		Router:  router,
-	}
-	//Create tests for
-	m.Get("/", (func(w http.ResponseWriter) {
-		w.Write([]byte("data!"))
-	}))
-	m.Get("/blank", (func(w http.ResponseWriter) (int, []byte) {
-		return http.StatusOK, nil
-	}))
 
 	r, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -43,8 +29,6 @@ func Test_GzipAll(t *testing.T) {
 	}
 
 	m.ServeHTTP(recorder, r)
-
-	t.Logf("recorder: %#v", recorder)
 
 	// Make our assertions
 	_, ok := recorder.HeaderMap[HeaderContentEncoding]
@@ -70,36 +54,6 @@ func Test_GzipAll(t *testing.T) {
 	ce = recorder.Header().Get(HeaderContentEncoding)
 	if !strings.EqualFold(ce, "gzip") {
 		t.Error(HeaderContentEncoding + " is not 'gzip'")
-	}
-
-	if before == false {
-		t.Error("Before hook was not called")
-	}
-
-	//Setup case where we request gzip but no response body is given
-	recorder = httptest.NewRecorder()
-	r, err = http.NewRequest("GET", "/blank", nil)
-	if err != nil {
-		t.Errorf("Error creating request", err)
-		t.FailNow()
-	}
-	r.Header.Set(HeaderAcceptEncoding, "gzip")
-	m.ServeHTTP(recorder, r)
-
-	// Make our assertions
-	_, ok = recorder.HeaderMap[HeaderContentEncoding]
-	if ok {
-		t.Error(HeaderContentEncoding + " is present")
-	}
-
-	ce = recorder.Header().Get(HeaderContentEncoding)
-	if strings.EqualFold(ce, "gzip") {
-		t.Error(HeaderContentEncoding + " is 'gzip'")
-	}
-
-	data := recorder.Body.Bytes()
-	if len(data) > 0 {
-		t.Error("Body has content " + string(data))
 	}
 
 	if before == false {
